@@ -39,6 +39,3 @@ class ItemPedido(models.Model):
         verbose_name = 'Item do pedido'
         verbose_name_plural = 'Itens do pedido'
 
-        def test():
-            pass
-
