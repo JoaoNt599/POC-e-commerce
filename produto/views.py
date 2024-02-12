@@ -5,6 +5,7 @@ from django.views import View
 from django.http import HttpResponse
 from . import models
 from django.contrib import messages
+import logging
 
 from pprint import pprint
 
@@ -112,17 +113,59 @@ class AdicionarAoCarrinho(View):
 
         return redirect(http_referer)
 
+
+
+logger = logging.getLogger(__name__)
+
 class RemoverDoCarrinho(View):
     def get(self, *args, **kwargs):
-        return HttpResponse('RemoverDoCarrinho')
+        http_referer = self.request.META.get(
+            'HTTP_REFERER',
+            reverse('produto:lista')
+        )
+        variacao_id = self.request.GET.get('vid')
+
+        if not variacao_id:
+            return redirect(http_referer)
+        
+        carrinho = self.request.session.get('carrinho', {})
+        
+        logger.debug(f"Carrinho antes da remoção: {carrinho}")
+
+        variacao_id = str(variacao_id)  # Convertendo para string
+
+        if variacao_id not in carrinho:
+            logger.warning(f"Variacao_id {variacao_id} não encontrada no carrinho")
+            return redirect(http_referer)
+
+        produto_nome = carrinho[variacao_id]["produto_nome"]
+        variacao_nome = carrinho[variacao_id]["variacao_nome"]
+
+        messages.success(
+            self.request,
+            f'Produto {produto_nome} {variacao_nome} removido do carrinho.'
+        )
+
+        del carrinho[variacao_id]
+        self.request.session['carrinho'] = carrinho
+        self.request.session.save()
+        
+        logger.debug(f"Carrinho após a remoção: {carrinho}")
+
+        return redirect(http_referer)
 
 
+        
+       
 class Carrinho(View):
     def get(self, *args, **kwargs):
-        return HttpResponse('Carrinho')
+        contexto = {
+            'carrinho': self.request.session.get('carrinho', {})
+        }
+        return render(self.request, 'produto/carrinho.html', contexto)
 
 
-class Finalizar(View):
+class ResumoDaCompra(View):
     def get(self, *args, **kwargs):
         return HttpResponse('Finalizar')
     
